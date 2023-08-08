@@ -16,30 +16,113 @@ class Calculator: ObservableObject {
         [.one, .two, .three, .add],
         [.zero, .decimal, .equal]
     ]
-    @Published var text: String = "0"
-    @Published var isPreresult = false
+    @Published var TEXT: String = "0"
+
+    private lazy var numberFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.decimalSeparator = "."
+        return formatter
+    }()
+
+    private lazy var finalFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSize = 3
+        formatter.groupingSeparator = " "
+        formatter.decimalSeparator = "."
+        return formatter
+    }()
+
+    var styledText: String {
+        if TEXT.contains(".") {
+            let sequence = TEXT.split(separator: ".")
+            let firstPart = sequence.first!
+            let lastPart = sequence.count > 1 ? sequence[1] : ""
+
+            let resultFirstPart = finalFormatter.string(from: NSNumber(value: Int(String(firstPart))!)) ?? "Error3"
+
+            print(TEXT)
+            return resultFirstPart + "," + lastPart
+        }
+        if TEXT.contains("e") {
+            return TEXT
+        }
+        return finalFormatter.string(from: NSNumber(value: Int(String(TEXT))!)) ?? "Error4"
+    }
+
+    func styleText(_ text: String) -> String {
+        guard let number = Double(text) else {
+            return "Error"
+        }
+
+
+        if abs(number) == 0.0 {
+            return "0"
+        } else if abs(number) >= 1e9 {
+            let eCount = String(String(Int(number) - 1).count).count
+            let str = String(format: "%.\(7 - eCount)e", number)
+            let result = str.split(separator: "e").first! + "e" + String(Int(str.split(separator: "e").last!)!)
+
+            return String(result)
+
+        } else if abs(number) <= 1e-8 {
+
+            let eCount = String(String(Int(number) - 1).count).count
+            let str = String(format: "%.\(7 - eCount)e", number)
+
+            var firstPart = str.split(separator: "e").first!
+
+
+            while firstPart.last == "0" || firstPart.last == "." {
+                print("firstPart", firstPart)
+                firstPart = firstPart.dropLast()
+            }
+
+            let lastPart = String(Int(str.split(separator: "e").last!)!)
+
+            let result = firstPart + "e" + lastPart
+
+            return String(result)
+
+        } else {
+            let nf = numberFormatter
+            nf.maximumFractionDigits = 9 - String(Int(number)).count
+            return numberFormatter.string(from: NSNumber(value: number)) ?? "Error1"
+        }
+    }
+
+    private var isPreresult = false
     private var operand1: Double = 0
     private var operand2: Double = 0
     private var currentOperator: CalcButton?
     private var currentDisplayValue: Double {
         get {
-            return Double(text) ?? 0
+            if TEXT.last == "." {
+                return Double(TEXT.dropLast(1)) ?? 0
+            }
+            return Double(TEXT) ?? 0
         }
         set {
-            text = trimIfWhole(newValue)
+            TEXT = String(newValue)
         }
     }
 
     func trimText() {
-        text.remove(at: text.index(before: text.endIndex))
-        currentDisplayValue = Double(text) ?? 0.0
-        if text.isEmpty {
-            text = "0"
+        var tempStr = styleText(TEXT)
+        tempStr.remove(at: tempStr.index(before: tempStr.endIndex))
+        if tempStr.isEmpty {
+            currentDisplayValue = 0.0
+            TEXT = "0"
+            return
         }
+        currentDisplayValue = Double(tempStr) ?? 0.0
+        TEXT = styleText(tempStr)
     }
 
     func trimIfWhole(_ number: Double) -> String {
         let isInt = floor(number) == number
+        print("trimmed")
         return isInt ?
         String(Int(number)) :
         String(number)
@@ -66,26 +149,33 @@ class Calculator: ObservableObject {
     }
 
     private func handleNumberInput(_ number: String) {
-        if text == "0" || isPreresult {
-            text = trimIfWhole(Double(number) ?? 0.0)
+        if TEXT == "0" || isPreresult {
+            TEXT = styleText(number)
             isPreresult = false
         } else {
-            text.append(number)
+            guard TEXT.replacingOccurrences(of: ".", with: "").count < 9 else {
+                print(TEXT.replacingOccurrences(of: ".", with: ""))
+                return
+            }
+            TEXT.append(number)
         }
     }
 
     private func handleOperatorInput(_ operatorButton: CalcButton) {
-        if currentOperator != nil {
+        if currentOperator != nil && !isPreresult {
             calculateResult()
         }
         isPreresult = true
         operand1 = currentDisplayValue
         currentOperator = operatorButton
-        text = trimIfWhole(currentDisplayValue)
+        TEXT = styleText(String(currentDisplayValue))
     }
     
     private func calculateResult() {
-        guard let operatorButton = currentOperator else { return }
+        guard let operatorButton = currentOperator else {
+            TEXT = styleText(String(currentDisplayValue))
+            return
+        }
         
         operand2 = currentDisplayValue
         var result: Double = 0
@@ -101,14 +191,14 @@ class Calculator: ObservableObject {
             if operand2 != 0 {
                 result = operand1 / operand2
             } else {
-                text = "Error"
+                TEXT = "Error"
                 return
             }
         default:
             break
         }
-        
         currentDisplayValue = result
+        TEXT = styleText(String(currentDisplayValue))
         currentOperator = nil
     }
 
@@ -116,20 +206,27 @@ class Calculator: ObservableObject {
         operand1 = 0
         operand2 = 0
         currentOperator = nil
-        text = "0"
+        TEXT = "0"
     }
 
     private func handleDecimalInput() {
-        if !text.contains(".") {
-            text.append(".")
+        if !isPreresult {
+            if !TEXT.contains(".") {
+                TEXT.append(".")
+            }
+        } else {
+            TEXT = "0."
+            isPreresult = false
         }
     }
 
     private func handlePercentInput() {
         currentDisplayValue *= 0.01
+        TEXT = styleText(String(currentDisplayValue))
     }
 
     private func toggleNegative() {
         currentDisplayValue = -currentDisplayValue
+        TEXT = styleText(String(currentDisplayValue))
     }
 }

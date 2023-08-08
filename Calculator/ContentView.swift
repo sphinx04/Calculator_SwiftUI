@@ -18,7 +18,7 @@ struct ContentView: View {
                 Spacer()
                 HStack {
                     Spacer()
-                    Text(model.text.replacingOccurrences(of: ".", with: ","))
+                    Text(model.styledText)
                         .multilineTextAlignment(.trailing)
                         .foregroundColor(.white)
                         .padding(.all, 5)
@@ -27,13 +27,14 @@ struct ContentView: View {
                         .fontWeight(.thin)
                         .lineLimit(1)
                         .minimumScaleFactor(0.01)
-                        .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .local)
-                            .onEnded({ value in
-                                if abs(value.translation.width) > 0 {
-                                    model.trimText()
-                                }
-                            }))
                 }
+                .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                    .onEnded({ value in
+                        if abs(value.translation.width) > 0 {
+                            model.trimText()
+                        }
+                    }))
+
                 Grid(alignment: .bottom) {
                     ForEach(model.buttons, id: \.self) { row in
                         GridRow {
@@ -47,6 +48,7 @@ struct ContentView: View {
                 } //GRID
             } //VSTACK
             .padding()
+            .padding(.bottom, 22)
         } //ZSTACK
     }
 }
@@ -59,6 +61,7 @@ struct CButton: View {
     var body: some View {
 
         let view = RoundedRectangle(cornerRadius: .infinity)
+            .padding(3)
             .cornerRadius(.infinity)
             .foregroundColor(calcButton.buttonColor)
             .overlay {
@@ -66,6 +69,7 @@ struct CButton: View {
                     .font(Font.system(size: calcButton.fontSize))
                     .foregroundColor(calcButton.textColor)
             }
+
             .overlay {
                 RoundedRectangle(cornerRadius: .infinity)
                     .foregroundColor(.white.opacity(tapped ? 0.3 : 0.0))
