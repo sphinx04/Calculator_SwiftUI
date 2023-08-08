@@ -21,9 +21,9 @@ enum CalcButton: String {
     case add = "+"
     case subtract = "-"
     case divide = "÷"
-    case multiply = "x"
+    case multiply = "×"
     case equal = "="
-    case clear = "AC"
+    case clear = "C"
     case decimal = ","
     case percent = "%"
     case negative = "-/+"
@@ -36,6 +36,24 @@ enum CalcButton: String {
             return .gray
         default:
             return .secondary
+        }
+    }
+
+    var textColor: Color {
+        switch self {
+        case .clear, .negative, .percent:
+            return .black
+        default:
+            return .white
+        }
+    }
+
+    var fontSize: CGFloat {
+        switch self {
+        case .add, .subtract, .multiply, .divide, .equal:
+            return 50
+        default:
+            return 40
         }
     }
 }

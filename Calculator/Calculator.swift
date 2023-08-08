@@ -7,10 +7,6 @@
 
 import Foundation
 
-enum Operation {
-    case add, subtract, multiply, divide, none
-}
-
 class Calculator: ObservableObject {
 
     var buttons: [[CalcButton]] = [
@@ -21,6 +17,7 @@ class Calculator: ObservableObject {
         [.zero, .decimal, .equal]
     ]
     @Published var text: String = "0"
+    @Published var isPreresult = false
     private var operand1: Double = 0
     private var operand2: Double = 0
     private var currentOperator: CalcButton?
@@ -29,8 +26,23 @@ class Calculator: ObservableObject {
             return Double(text) ?? 0
         }
         set {
-            text = String(newValue)
+            text = trimIfWhole(newValue)
         }
+    }
+
+    func trimText() {
+        text.remove(at: text.index(before: text.endIndex))
+        currentDisplayValue = Double(text) ?? 0.0
+        if text.isEmpty {
+            text = "0"
+        }
+    }
+
+    func trimIfWhole(_ number: Double) -> String {
+        let isInt = floor(number) == number
+        return isInt ?
+        String(Int(number)) :
+        String(number)
     }
 
     func didTap(button: CalcButton) {
@@ -41,6 +53,7 @@ class Calculator: ObservableObject {
             handleOperatorInput(button)
         case .equal:
             calculateResult()
+            isPreresult = false
         case .clear:
             clear()
         case .decimal:
@@ -53,8 +66,9 @@ class Calculator: ObservableObject {
     }
 
     private func handleNumberInput(_ number: String) {
-        if text == "0" {
-            text = number
+        if text == "0" || isPreresult {
+            text = trimIfWhole(Double(number) ?? 0.0)
+            isPreresult = false
         } else {
             text.append(number)
         }
@@ -64,17 +78,18 @@ class Calculator: ObservableObject {
         if currentOperator != nil {
             calculateResult()
         }
+        isPreresult = true
         operand1 = currentDisplayValue
         currentOperator = operatorButton
-        text = "0"
+        text = trimIfWhole(currentDisplayValue)
     }
-
+    
     private func calculateResult() {
         guard let operatorButton = currentOperator else { return }
-
+        
         operand2 = currentDisplayValue
         var result: Double = 0
-
+        
         switch operatorButton {
         case .add:
             result = operand1 + operand2
@@ -92,7 +107,7 @@ class Calculator: ObservableObject {
         default:
             break
         }
-
+        
         currentDisplayValue = result
         currentOperator = nil
     }

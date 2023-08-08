@@ -18,14 +18,21 @@ struct ContentView: View {
                 Spacer()
                 HStack {
                     Spacer()
-                    Text("\(model.text)")
+                    Text(model.text.replacingOccurrences(of: ".", with: ","))
                         .multilineTextAlignment(.trailing)
                         .foregroundColor(.white)
                         .padding(.all, 5)
                         .textFieldStyle(.plain)
-                        .font(Font.system(size: 60, design: .default))
+                        .font(Font.system(size: 100, design: .default))
+                        .fontWeight(.thin)
                         .lineLimit(1)
                         .minimumScaleFactor(0.01)
+                        .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                            .onEnded({ value in
+                                if abs(value.translation.width) > 0 {
+                                    model.trimText()
+                                }
+                            }))
                 }
                 Grid(alignment: .bottom) {
                     ForEach(model.buttons, id: \.self) { row in
@@ -56,8 +63,8 @@ struct CButton: View {
             .foregroundColor(calcButton.buttonColor)
             .overlay {
                 Text(calcButton.rawValue)
-                    .font(.largeTitle)
-                    .foregroundColor(.white)
+                    .font(Font.system(size: calcButton.fontSize))
+                    .foregroundColor(calcButton.textColor)
             }
             .overlay {
                 RoundedRectangle(cornerRadius: .infinity)
